@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enerji Mikro Ormanları — TÜBİTAK 4004</title>
+<meta name="description" content="Doğayla Teknolojiyi Birleştiren Hibrit Sistem — Yapay fotosentez ve doğal bitki sistemlerinin buluşması">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Literata:ital,wght@0,300;0,500;1,300&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #22c55e;
+    --green-dark: #15803d;
+    --blue: #38bdf8;
+    --blue-dark: #0369a1;
+    --amber: #fbbf24;
+    --purple: #a78bfa;
+    --purple-dark: #7c3aed;
+    --orange: #fb923c;
+    --bg: #070f1a;
+    --bg2: #0d1b2e;
+    --bg3: #111f35;
+    --text: #e0f0ff;
+    --text-muted: #7aa3c8;
+    --border: rgba(56,189,248,0.15);
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Literata', Georgia, serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ─── HERO ─────────────────────────────────────────── */
+  #hero {
+    position: relative;
+    height: 100vh;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+  #hero canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, var(--bg) 0%, transparent 40%);
+    pointer-events: none;
+  }
+  .hero-text {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 0 24px 60px;
+    max-width: 700px;
+  }
+  .hero-badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--blue);
+    border: 1px solid var(--blue);
+    padding: 4px 14px;
+    border-radius: 2px;
+    margin-bottom: 18px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.3s forwards;
+  }
+  .hero-title {
+    font-family: 'Literata', serif;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 300;
+    line-height: 1.15;
+    color: #fff;
+    margin-bottom: 14px;
+    opacity: 0;
+    animation: fadeUp 0.9s 0.55s forwards;
+  }
+  .hero-title em { font-style: italic; color: var(--green); }
+  .hero-subtitle {
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeUp 0.9s 0.75s forwards;
+  }
+  .hero-scroll {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    animation: fadeUp 1s 1.1s forwards;
+  }
+  .hero-scroll::before {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 32px;
+    background: var(--border);
+    animation: scrollPulse 2s 1.5s ease-in-out infinite;
+  }
+  .controls-hint {
+    position: absolute;
+    bottom: 120px;
+    right: 24px;
+    z-index: 10;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: right;
+    line-height: 1.8;
+    opacity: 0;
+    animation: fadeUp 1s 1.4s forwards;
+  }
+
+  /* ─── LIVE STATS HUD ─────────────────────────────── */
+  #hud {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 20;
+    background: rgba(7,15,26,0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    font-family: 'Space Mono', monospace;
+    min-width: 200px;
+    opacity: 0;
+    animation: fadeIn 1s 1.6s forwards;
+  }
+  #hud-title {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    color: var(--blue);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .hud-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    font-size: 11px;
+    margin: 6px 0;
+    color: var(--text-muted);
+  }
+  .hud-val { color: var(--green); font-weight: 700; }
+  .hud-dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; margin-right: 6px;
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  /* ─── LEGEND ─────────────────────────────────────── */
+  #legend {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    z-index: 20;
+    background: rgba(7,15,26,0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    font-family: 'Space Mono', monospace;
+    opacity: 0;
+    animation: fadeIn 1s 1.6s forwards;
+  }
+  #legend-title {
+    font-size: 9px; letter-spacing: 2.5px; color: var(--blue);
+    text-transform: uppercase; margin-bottom: 12px;
+    border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  .leg-row { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-muted); margin: 6px 0; }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ─── TOOLTIP ─────────────────────────────────────── */
+  #tooltip3d {
+    position: absolute;
+    bottom: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    background: rgba(7,15,26,0.9);
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    text-align: center;
+    pointer-events: none;
+    min-width: 280px;
+    max-width: 90vw;
+    transition: opacity 0.3s;
+    opacity: 0;
+    animation: fadeIn 1s 2s forwards;
+  }
+
+  /* ─── CONTENT SECTIONS ──────────────────────────── */
+  .section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 32px;
+  }
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--blue);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  h2 {
+    font-family: 'Literata', serif;
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    font-weight: 300;
+    line-height: 1.3;
+    color: #fff;
+    margin-bottom: 28px;
+  }
+  h2 em { font-style: italic; color: var(--green); }
+  p { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 16px; line-height: 1.8; }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* ─── DIVIDER ─────────────────────────────────────── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0 32px;
+  }
+
+  /* ─── CARDS GRID ─────────────────────────────────── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-top: 40px;
+  }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .card:hover { border-color: var(--blue); transform: translateY(-2px); }
+  .card-icon {
+    font-size: 1.6rem;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .card h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .card p { font-size: 0.9rem; color: var(--text-muted); margin: 0; }
+  .card-accent {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  /* ─── PHASE TIMELINE ─────────────────────────────── */
+  .phases { margin-top: 40px; }
+  .phase {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+    align-items: flex-start;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 0.6s, transform 0.6s;
+  }
+  .phase.visible { opacity: 1; transform: translateX(0); }
+  .phase-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    border: 1px solid var(--border);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .phase-body h4 {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .phase-body p { font-size: 0.95rem; color: var(--text-muted); margin: 0; }
+
+  /* ─── KEYWORDS ─────────────────────────────────────── */
+  .keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 32px;
+  }
+  .kw {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text-muted);
+    transition: color 0.3s, border-color 0.3s;
+  }
+  .kw:hover { color: var(--green); border-color: var(--green); }
+
+  /* ─── FOOTER ─────────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 32px;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 2;
+  }
+
+  /* ─── ANIMATIONS ─────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50%  { opacity: 1; transform: scaleY(1.4); }
+  }
+
+  /* ─── SCROLL REVEAL ──────────────────────────────── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s, transform 0.7s;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ HERO -->
+<section id="hero">
+  <canvas id="three-canvas"></canvas>
+  <div class="hero-overlay"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-title">● Canlı Ölçümler</div>
+    <div class="hud-row">
+      <span><span class="hud-dot" style="background:var(--amber)"></span>Enerji</span>
+      <span class="hud-val" id="sv-energy">2.4 W</span>
+    </div>
+    <div class="hud-row">
+      <span><span class="hud-dot" style="background:var(--orange)"></span>CO₂ emilimi</span>
+      <span class="hud-val" id="sv-co2">1.8 g/h</span>
+    </div>
+    <div class="hud-row">
+      <span><span class="hud-dot" style="background:var(--green)"></span>O₂ üretimi</span>
+      <span class="hud-val" id="sv-o2">3.2 g/h</span>
+    </div>
+    <div class="hud-row">
+      <span><span class="hud-dot" style="background:var(--blue)"></span>Işık</span>
+      <span class="hud-val" id="sv-light">42.000 lux</span>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend">
+    <div id="legend-title">Sistem Bileşenleri</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#4ade80"></div> Doğal bitki</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#60a5fa"></div> Yapay fotosentetik yaprak</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#fbbf24"></div> Güneş enerjisi akışı</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#a78bfa"></div> Yarı iletken modül</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#fb923c"></div> CO₂ emilimi</div>
+  </div>
+
+  <!-- Tooltip -->
+  <div id="tooltip3d">Fareyle sürükle → döndür &nbsp;|&nbsp; Scroll → yaklaştır &nbsp;|&nbsp; Üzerine gel → bilgi</div>
+
+  <!-- Controls hint -->
+  <div class="controls-hint">
+    ← sürükle / döndür →<br>
+    scroll → zoom
+  </div>
+
+  <!-- Hero text -->
+  <div class="hero-text">
+    <div class="hero-badge">TÜBİTAK 4004 · Doğa Eğitimi</div>
+    <h1 class="hero-title">Enerji <em>Mikro Ormanları</em></h1>
+    <p class="hero-subtitle">Doğayla Teknolojiyi Birleştiren Hibrit Sistem</p>
+    <div class="hero-scroll">↓ &nbsp; aşağı kaydır</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ ÖZET -->
+<section class="section reveal">
+  <div class="section-label">Proje Özeti</div>
+  <h2>Doğanın mekanizmaları ile <em>teknolojinin gücü</em> bir arada</h2>
+  <p>
+    Bu proje, doğadaki fotosentez sürecini taklit eden teknolojiler ile doğal bitki sistemlerini birleştirerek
+    enerji bağımlılığını azaltmayı ve karbon emilimini artırmayı hedeflemektedir.
+    <strong>Gerçek bitkiler</strong> doğal fotosentez yoluyla karbonu emer ve oksijen üretirken;
+    <strong>yapay yaprak modülleri</strong> güneş enerjisini kullanarak elektrik üretir,
+    aynı zamanda karbondioksiti emerek çevreye katkı sağlar.
+  </p>
+  <p>
+    Bu iki sistem bir araya geldiğinde, doğa ve teknolojinin iş birliğiyle enerji üretimi ve
+    çevre temizliği aynı anda gerçekleşmektedir.
+  </p>
+
+  <div class="cards">
+    <div class="card">
+      <span class="card-icon">🌿</span>
+      <h3>Doğal Bölüm</h3>
+      <p>Gerçek bitkilerden oluşan ekosistem; karbon yutağı olarak doğal CO₂ emilimi ve O₂ üretimi.</p>
+      <div class="card-accent" style="background:var(--green-dark)"></div>
+    </div>
+    <div class="card">
+      <span class="card-icon">⚡</span>
+      <h3>Yapay Yaprak</h3>
+      <p>Güneş enerjili fotosentetik yapraklar; elektrik üretimi ve eş zamanlı karbon emilimi.</p>
+      <div class="card-accent" style="background:var(--blue-dark)"></div>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔬</span>
+      <h3>Yarı İletken</h3>
+      <p>Sensör destekli ölçüm ve yarı iletken dönüştürücüler; enerji iletimi ve veri analizi.</p>
+      <div class="card-accent" style="background:var(--purple-dark)"></div>
+    </div>
+    <div class="card">
+      <span class="card-icon">📊</span>
+      <h3>Veri Analizi</h3>
+      <p>CO₂ oranı, oksijen seviyeleri, ışık şiddeti ve enerji üretim değerleri gerçek zamanlı izleme.</p>
+      <div class="card-accent" style="background:var(--amber)"></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════ YÖNTEM -->
+<section class="section">
+  <div class="section-label reveal">Uygulama Yöntemi</div>
+  <h2 class="reveal">Üç aşamalı <em>öğrenme süreci</em></h2>
+
+  <div class="phases">
+    <div class="phase">
+      <div class="phase-num">01</div>
+      <div class="phase-body">
+        <h4>Teorik Eğitim</h4>
+        <p>Fotosentez, enerji dönüşümü, karbon döngüsü ve iklim değişikliği konularında atölye çalışmaları.
+        Katılımcılar temel kavramları deneyimsel olarak öğrenir.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">02</div>
+      <div class="phase-body">
+        <h4>Uygulama — Mikro Orman Kurulumu</h4>
+        <p>Katılımcılar iki bölümlü modül oluşturur: gerçek bitkilerle doğal bölüm ve güneş enerjili
+        yapay yapraklardan oluşan teknolojik bölüm. Sensörlerle anlık ölçümler yapılır.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">03</div>
+      <div class="phase-body">
+        <h4>Değerlendirme ve Bilim</h4>
+        <p>Toplanan verilerle çevresel etki, enerji üretim verimi ve karbon emilim oranları değerlendirilir.
+        Doğa-teknoloji etkileşimi bilimsel olarak yorumlanır.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════ SONUÇLAR -->
+<section class="section reveal">
+  <div class="section-label">Beklenen Sonuçlar</div>
+  <h2>Sürdürülebilir bir <em>gelecek</em> için bilim</h2>
+  <p>
+    Proje sonunda oluşturulan "Enerji Mikro Ormanları" modülleri okul ve kurum bahçelerinde
+    <strong>kalıcı eğitim materyali</strong> olarak bırakılacaktır.
+    Gerçek bitkilerin düzenli sulanması ve yapay yaprakların güneş enerjisiyle kendi kendini beslemesi
+    sayesinde sistem uzun süreli çalışabilir.
+  </p>
+  <p>
+    Türkiye'de ilk kez doğal bitki fotosentezi ile yapay fotosentez sistemlerini aynı eğitim ortamında
+    bütünleştiren bu yenilikçi model; çevre bilimleri, fen eğitimi ve mühendislik alanlarında
+    yeni projelere temel oluşturacaktır.
+  </p>
+
+  <div class="keywords">
+    <span class="kw">Yapay Fotosentez</span>
+    <span class="kw">Karbon Emilimi</span>
+    <span class="kw">Yenilenebilir Enerji</span>
+    <span class="kw">Sürdürülebilirlik</span>
+    <span class="kw">Çevre Bilinci</span>
+    <span class="kw">Hibrit Sistem</span>
+    <span class="kw">Doğa Eğitimi</span>
+    <span class="kw">Yarı İletken</span>
+    <span class="kw">TÜBİTAK 4004</span>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ FOOTER -->
+<footer>
+  <div>Enerji Mikro Ormanları · TÜBİTAK 4004 Doğa Eğitimi ve Bilim Okulları</div>
+  <div style="margin-top:8px; font-size:10px; opacity:0.5;">
+    Doğayla Teknolojiyi Birleştiren Hibrit Sistem
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════ THREE.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function() {
+  const canvas = document.getElementById('three-canvas');
+  const hero = document.getElementById('hero');
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  function resize() {
+    renderer.setSize(hero.offsetWidth, hero.offsetHeight);
+    camera.aspect = hero.offsetWidth / hero.offsetHeight;
+    camera.updateProjectionMatrix();
+  }
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x070f1a);
+  scene.fog = new THREE.FogExp2(0x070f1a, 0.038);
+
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+  camera.position.set(14, 10, 20);
+  camera.lookAt(0, 2, 0);
+
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Lighting
+  scene.add(new THREE.AmbientLight(0x1a2a4a, 1.4));
+  const sun = new THREE.DirectionalLight(0xffd580, 2.8);
+  sun.position.set(10, 20, 8);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  scene.add(sun);
+  const rim = new THREE.DirectionalLight(0x7dd3fc, 0.7);
+  rim.position.set(-10, 5, -10);
+  scene.add(rim);
+
+  // Ground
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x0f1f0f });
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(20, 64), groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Grid
+  for (let i = -9; i <= 9; i++) {
+    const lm = new THREE.LineBasicMaterial({ color: 0x1a2e1a, transparent: true, opacity: 0.45 });
+    const g1 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(i, 0.01, -9), new THREE.Vector3(i, 0.01, 9)]);
+    const g2 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-9, 0.01, i), new THREE.Vector3(9, 0.01, i)]);
+    scene.add(new THREE.Line(g1, lm));
+    scene.add(new THREE.Line(g2, lm));
+  }
+
+  const objects = [];
+  const particles = [];
+
+  function makeNatural(px, pz, scale, angleOff) {
+    const g = new THREE.Group();
+    // trunk
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06 * scale, 0.1 * scale, 1.2 * scale, 8),
+      new THREE.MeshLambertMaterial({ color: 0x5c3d1e })
+    );
+    trunk.position.y = 0.6 * scale;
+    trunk.castShadow = true;
+    g.add(trunk);
+
+    const leafColors = [0x22c55e, 0x16a34a, 0x4ade80, 0x15803d, 0x86efac];
+    // branches
+    for (let b = 0; b < 5; b++) {
+      const ang = (b / 5) * Math.PI * 2 + angleOff;
+      const bx = Math.cos(ang) * 0.55 * scale, bz = Math.sin(ang) * 0.55 * scale;
+      const by = (0.95 + b * 0.12) * scale;
+      for (let l = 0; l < 4; l++) {
+        const lGeo = new THREE.SphereGeometry((0.28 + Math.random() * 0.18) * scale, 8, 6);
+        lGeo.scale(1.5, 0.3 + Math.random() * 0.1, 1.0);
+        const lMesh = new THREE.Mesh(lGeo, new THREE.MeshLambertMaterial({
+          color: leafColors[Math.floor(Math.random() * leafColors.length)],
+          transparent: true, opacity: 0.9
+        }));
+        lMesh.position.set(
+          bx + (Math.random() - 0.5) * 0.5 * scale,
+          by + 0.25 * scale + Math.random() * 0.4 * scale,
+          bz + (Math.random() - 0.5) * 0.5 * scale
+        );
+        lMesh.rotation.y = Math.random() * Math.PI;
+        lMesh.rotation.z = (Math.random() - 0.5) * 0.6;
+        lMesh.castShadow = true;
+        g.add(lMesh);
+      }
+    }
+    // crown
+    const crown = new THREE.Mesh(
+      (() => { const s = new THREE.SphereGeometry(0.6 * scale, 10, 8); s.scale(1.15, 0.75, 1.0); return s; })(),
+      new THREE.MeshLambertMaterial({ color: 0x15803d, transparent: true, opacity: 0.93 })
+    );
+    crown.position.y = 1.65 * scale;
+    crown.castShadow = true;
+    g.add(crown);
+
+    g.position.set(px, 0, pz);
+    g.userData = { type: 'natural', label: '🌿 Doğal Bitki — Fotosentez ile CO₂ emer, O₂ üretir' };
+    scene.add(g); objects.push(g); return g;
+  }
+
+  function makeArtificial(px, pz, scale) {
+    const g = new THREE.Group();
+    // stem
+    const stem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04 * scale, 0.07 * scale, 1.6 * scale, 8),
+      new THREE.MeshLambertMaterial({ color: 0x1e3a5f })
+    );
+    stem.position.y = 0.8 * scale;
+    stem.castShadow = true;
+    g.add(stem);
+
+    // semiconductor base
+    const sem = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55 * scale, 0.28 * scale, 0.55 * scale),
+      new THREE.MeshLambertMaterial({ color: 0x4c1d95, emissive: new THREE.Color(0x4a1d96), emissiveIntensity: 0.35 })
+    );
+    sem.position.y = 0.14 * scale;
+    sem.castShadow = true;
+    g.add(sem);
+
+    // circuit lines on base
+    for (let ci = 0; ci < 3; ci++) {
+      const cl = new THREE.Mesh(
+        new THREE.BoxGeometry(0.44 * scale, 0.01, 0.025),
+        new THREE.MeshLambertMaterial({ color: 0xa78bfa, emissive: new THREE.Color(0x7c3aed), emissiveIntensity: 1.0 })
+      );
+      cl.position.set(0, 0.285 * scale, -0.18 * scale + ci * 0.18 * scale);
+      g.add(cl);
+    }
+
+    // LED dots
+    for (let li = 0; li < 3; li++) {
+      const led = new THREE.Mesh(
+        new THREE.SphereGeometry(0.055 * scale, 8, 8),
+        new THREE.MeshLambertMaterial({ color: 0xfbbf24, emissive: new THREE.Color(0xf59e0b), emissiveIntensity: 1.5 })
+      );
+      led.position.set(-0.16 * scale + li * 0.16 * scale, 0.3 * scale, 0.26 * scale);
+      g.add(led);
+    }
+
+    // leaf panels — same organic shape as natural leaves but blue
+    const panelColors = [0x38bdf8, 0x60a5fa, 0x0ea5e9, 0x7dd3fc, 0x3b82f6];
+    for (let p = 0; p < 6; p++) {
+      const ang = (p / 6) * Math.PI * 2;
+      const pGeo = new THREE.SphereGeometry(0.4 * scale, 8, 6);
+      pGeo.scale(1.55, 0.22, 0.95);
+      const panel = new THREE.Mesh(pGeo, new THREE.MeshLambertMaterial({
+        color: panelColors[p % panelColors.length],
+        transparent: true, opacity: 0.87,
+        emissive: new THREE.Color(0x004488), emissiveIntensity: 0.18
+      }));
+      panel.position.set(
+        Math.cos(ang) * 0.58 * scale,
+        (1.45 + p * 0.14) * scale,
+        Math.sin(ang) * 0.58 * scale
+      );
+      panel.rotation.y = ang + 0.4;
+      panel.rotation.z = (Math.random() - 0.5) * 0.25;
+      panel.castShadow = true;
+      g.add(panel);
+
+      // semiconductor grid on each leaf
+      for (let gi = 0; gi < 4; gi++) {
+        const gLine = new THREE.Mesh(
+          new THREE.BoxGeometry(0.52 * scale, 0.007, 0.025),
+          new THREE.MeshLambertMaterial({ color: 0xc4b5fd, emissive: new THREE.Color(0x7c3aed), emissiveIntensity: 0.7 })
+        );
+        gLine.position.copy(panel.position);
+        gLine.position.y += (-0.06 + gi * 0.04) * scale;
+        gLine.rotation.y = panel.rotation.y;
+        g.add(gLine);
+      }
+    }
+
+    g.position.set(px, 0, pz);
+    g.userData = { type: 'artificial', label: '⚡ Yapay Yaprak — Güneş enerjisini elektriğe dönüştürür, CO₂ emer' };
+    scene.add(g); objects.push(g); return g;
+  }
+
+  function makeSensor(px, pz) {
+    const g = new THREE.Group();
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.08, 3.2, 8),
+      new THREE.MeshLambertMaterial({ color: 0x334155 })
+    );
+    pole.position.y = 1.6;
+    g.add(pole);
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(0.45, 0.28, 0.22),
+      new THREE.MeshLambertMaterial({ color: 0x0f172a, emissive: new THREE.Color(0x0ea5e9), emissiveIntensity: 0.25 })
+    );
+    box.position.y = 3.3;
+    g.add(box);
+    const screen = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.3, 0.17),
+      new THREE.MeshLambertMaterial({ color: 0x00ff88, emissive: new THREE.Color(0x00ff88), emissiveIntensity: 0.9 })
+    );
+    screen.position.set(0, 3.3, 0.12);
+    g.add(screen);
+    g.position.set(px, 0, pz);
+    g.userData = { type: 'sensor', label: '🔬 Sensör Sistemi — CO₂, sıcaklık, ışık ve enerji ölçümü' };
+    scene.add(g); objects.push(g);
+  }
+
+  function makeSemBox(px, pz) {
+    const g = new THREE.Group();
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(1.3, 0.45, 0.9),
+      new THREE.MeshLambertMaterial({ color: 0x1e1b4b, emissive: new THREE.Color(0x4338ca), emissiveIntensity: 0.18 })
+    );
+    box.position.y = 0.225;
+    box.castShadow = true;
+    g.add(box);
+    for (let i = 0; i < 5; i++) {
+      const c = new THREE.Mesh(
+        new THREE.BoxGeometry(1.0, 0.012, 0.02),
+        new THREE.MeshLambertMaterial({ color: 0xa78bfa, emissive: new THREE.Color(0x7c3aed), emissiveIntensity: 0.9 })
+      );
+      c.position.set(0, 0.455, -0.3 + i * 0.15);
+      g.add(c);
+    }
+    for (let i = 0; i < 4; i++) {
+      const d = new THREE.Mesh(
+        new THREE.SphereGeometry(0.065, 8, 8),
+        new THREE.MeshLambertMaterial({ color: 0xfbbf24, emissive: new THREE.Color(0xf59e0b), emissiveIntensity: 1.2 })
+      );
+      d.position.set(-0.45 + i * 0.3, 0.465, 0.42);
+      g.add(d);
+    }
+    g.position.set(px, 0, pz);
+    g.userData = { type: 'semiconductor', label: '🔋 Yarı İletken Modül — Enerji iletimi ve dönüşüm kontrolü' };
+    scene.add(g); objects.push(g);
+  }
+
+  // Layout
+  const layout = [
+    { x:-4.5, z:-4, n:true,  s:1.1 }, { x:-2,   z:-5,   n:false, s:0.9 },
+    { x: 0.5, z:-4, n:true,  s:1.3 }, { x: 2.8, z:-4.5, n:false, s:1.0 },
+    { x: 5,   z:-3, n:true,  s:0.95}, { x:-5.5, z: 0,   n:false, s:1.05},
+    { x:-3,   z: 0.5,n:true, s:1.2 }, { x:-0.5, z: 0.5, n:false, s:0.85},
+    { x: 2,   z: 0.5,n:true, s:1.15}, { x: 4.5, z: 0,   n:false, s:0.9 },
+    { x: 6,   z: 1.5,n:true, s:1.0 }, { x:-5,   z: 3.5, n:true,  s:0.9 },
+    { x:-2.5, z: 4,  n:false, s:1.1}, { x: 0.3, z: 3.5, n:true,  s:1.0 },
+    { x: 3,   z: 4,  n:false, s:0.95}, { x: 5.5, z: 3.5, n:true, s:1.2 },
+    { x:-1.5, z:-2,  n:false, s:0.8}, { x: 1,   z:-1.5, n:true,  s:0.9 },
+  ];
+
+  layout.forEach((p, i) => {
+    if (p.n) makeNatural(p.x, p.z, p.s, i * 1.3);
+    else makeArtificial(p.x, p.z, p.s);
+  });
+
+  makeSensor(-7, -1.5);
+  makeSensor(7, 1.5);
+  makeSensor(0.5, -7.5);
+  makeSemBox(-6.5, 3);
+  makeSemBox(6.5, -3);
+  makeSemBox(0, 6.5);
+
+  // Particle spawner
+  function spawnParticle(type) {
+    const artP = layout.filter(p => !p.n);
+    const natP = layout.filter(p => p.n);
+    const ap = artP[Math.floor(Math.random() * artP.length)];
+    const np = natP[Math.floor(Math.random() * natP.length)];
+    let color, sx, sy, sz, ex, ey, ez;
+    if (type === 'solar') {
+      color = 0xfbbf24;
+      sx = ap.x + (Math.random()-0.5)*3; sy = 16+Math.random()*3; sz = ap.z+(Math.random()-0.5)*3;
+      ex = ap.x; ey = 1.8; ez = ap.z;
+    } else if (type === 'co2') {
+      color = 0xfb923c;
+      sx = ap.x; sy = 0.3; sz = ap.z;
+      ex = ap.x+(Math.random()-0.5)*4; ey = 4+Math.random()*2; ez = ap.z+(Math.random()-0.5)*4;
+    } else {
+      color = 0x86efac;
+      sx = np.x; sy = 0.8; sz = np.z;
+      ex = np.x+(Math.random()-0.5)*4; ey = 5+Math.random()*2; ez = np.z+(Math.random()-0.5)*4;
+    }
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.075, 6, 6),
+      new THREE.MeshLambertMaterial({ color, emissive: new THREE.Color(color), emissiveIntensity: 0.9, transparent: true, opacity: 0.9 })
+    );
+    mesh.position.set(sx, sy, sz);
+    mesh.userData = { sx, sy, sz, ex, ey, ez, t: Math.random() * 0.2, speed: 0.005+Math.random()*0.004 };
+    scene.add(mesh); particles.push(mesh);
+  }
+
+  // Orbit
+  let drag = false, prevX = 0, prevY = 0;
+  let theta = 0.55, phi = 0.48, radius = 26;
+  canvas.addEventListener('mousedown', e => { drag = true; prevX = e.clientX; prevY = e.clientY; });
+  window.addEventListener('mouseup', () => drag = false);
+  window.addEventListener('mousemove', e => {
+    if (drag) {
+      theta -= (e.clientX - prevX) * 0.007;
+      phi = Math.max(0.12, Math.min(1.3, phi - (e.clientY - prevY) * 0.005));
+      prevX = e.clientX; prevY = e.clientY;
+    }
+  });
+  canvas.addEventListener('wheel', e => { radius = Math.max(8, Math.min(45, radius + e.deltaY * 0.03)); });
+
+  // Touch support
+  let lastTouchX = 0, lastTouchY = 0;
+  canvas.addEventListener('touchstart', e => { lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; });
+  canvas.addEventListener('touchmove', e => {
+    theta -= (e.touches[0].clientX - lastTouchX) * 0.007;
+    phi = Math.max(0.12, Math.min(1.3, phi - (e.touches[0].clientY - lastTouchY) * 0.005));
+    lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
+  });
+
+  // Raycaster
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2(-9999, -9999);
+  const tooltipEl = document.getElementById('tooltip3d');
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  });
+
+  let frame = 0;
+  const clock = new THREE.Clock();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    frame++;
+    const t = clock.getElapsedTime();
+
+    camera.position.x = radius * Math.sin(theta) * Math.cos(phi);
+    camera.position.y = radius * Math.sin(phi);
+    camera.position.z = radius * Math.cos(theta) * Math.cos(phi);
+    camera.lookAt(0, 2, 0);
+
+    sun.position.x = Math.cos(t * 0.08) * 18;
+    sun.position.z = Math.sin(t * 0.08) * 10;
+    sun.intensity = 2.2 + Math.sin(t * 0.2) * 0.5;
+
+    if (frame % 16 === 0) spawnParticle('solar');
+    if (frame % 20 === 0) spawnParticle('co2');
+    if (frame % 25 === 0) spawnParticle('o2');
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i], d = p.userData;
+      d.t += d.speed;
+      if (d.t >= 1) { scene.remove(p); particles.splice(i, 1); continue; }
+      p.position.x = d.sx + (d.ex - d.sx) * d.t;
+      p.position.y = d.sy + (d.ey - d.sy) * d.t + Math.sin(d.t * Math.PI) * 1.6;
+      p.position.z = d.sz + (d.ez - d.sz) * d.t;
+      p.material.opacity = 0.9 * (1 - Math.abs(d.t - 0.5) * 1.6);
+    }
+
+    objects.forEach((obj, i) => {
+      if (obj.userData.type === 'natural') {
+        obj.rotation.y = Math.sin(t * 0.35 + i * 1.9) * 0.055;
+        obj.rotation.z = Math.sin(t * 0.28 + i * 2.3) * 0.025;
+      } else if (obj.userData.type === 'artificial') {
+        obj.children.forEach((c, ci) => {
+          if (ci > 3 && ci < 10) c.rotation.z = Math.sin(t * 0.45 + ci + i * 0.7) * 0.035;
+        });
+      }
+    });
+
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(objects, true);
+    if (hits.length > 0) {
+      let found = hits[0].object;
+      while (found.parent && !found.userData.type) found = found.parent;
+      if (found.userData.label) tooltipEl.textContent = found.userData.label;
+    } else {
+      tooltipEl.textContent = 'Fareyle sürükle → döndür  |  Scroll → yaklaştır  |  Üzerine gel → bilgi';
+    }
+
+    // Stats
+    const en = (2.4 + Math.sin(t * 0.3) * 0.6).toFixed(1);
+    const co = (1.8 + Math.cos(t * 0.25) * 0.4).toFixed(1);
+    const ox = (3.2 + Math.sin(t * 0.22) * 0.5).toFixed(1);
+    const lx = Math.round(42000 + Math.sin(t * 0.15) * 8000);
+    document.getElementById('sv-energy').textContent = en + ' W';
+    document.getElementById('sv-co2').textContent = co + ' g/h';
+    document.getElementById('sv-o2').textContent = ox + ' g/h';
+    document.getElementById('sv-light').textContent = lx.toLocaleString('tr-TR') + ' lux';
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+// Scroll reveal
+const revealEls = document.querySelectorAll('.reveal, .phase');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+}, { threshold: 0.15 });
+revealEls.forEach(el => io.observe(el));
+</script>
+</body>
+</html>
